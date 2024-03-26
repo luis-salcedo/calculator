@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -8,43 +10,108 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String localResult = '0';
-  List<double> localNumbers = [];
-  double currentNumber = 0;
-
+  String calculatedResult = '';
+  List<double> setOfNumbers = [];
+  String currentNumber = '';
+  String currentOperator = '';
   void acFunc() {
     setState(() {
-      localResult = '0';
-      localNumbers.clear();
-      currentNumber = 0;
+      calculatedResult = '';
+      setOfNumbers.clear();
+      currentNumber = '';
     });
   }
 
   void add() {
-    localNumbers.add(double.parse(localResult));
+    double result = 0;
+    for (int i = 0; i < setOfNumbers.length; i++) {
+      result += setOfNumbers[i];
+    }
     setState(() {
-      currentNumber = 0;
-      localResult = '0';
+      calculatedResult = result.toString();
     });
   }
 
   void multiply() {
-    localNumbers.add(double.parse(localResult));
+    double result = 1; // Initialize result to 1 for multiplication
+    for (int i = 0; i < setOfNumbers.length; i++) {
+      result *= setOfNumbers[i]; // Multiply each element in the setOfNumbers
+    }
     setState(() {
-      currentNumber = 0;
-      localResult = '0';
+      calculatedResult = result.toString();
+    });
+  }
+
+  void divide() {
+    double result = setOfNumbers.isNotEmpty
+        ? setOfNumbers[0]
+        : 0; // Initialize result to the first element of setOfNumbers, or 0 if setOfNumbers is empty
+    for (int i = 1; i < setOfNumbers.length; i++) {
+      if (setOfNumbers[i] != 0) {
+        result /= setOfNumbers[i]; // Divide each element in the setOfNumbers
+      } else {
+        print("Division by zero encountered. Skipping.");
+      }
+    }
+    setState(() {
+      calculatedResult = result.toString();
+    });
+  }
+
+  void subtract() {
+    double result = setOfNumbers.isNotEmpty
+        ? setOfNumbers[0]
+        : 0; // Initialize result to the first element of setOfNumbers, or 0 if setOfNumbers is empty
+    for (int i = 1; i < setOfNumbers.length; i++) {
+      result -= setOfNumbers[
+          i]; // Subtract each element in the setOfNumbers from the result
+    }
+    setState(() {
+      calculatedResult = result.toString();
+    });
+  }
+
+  void calculateModulus() {
+    double result = setOfNumbers.isNotEmpty
+        ? setOfNumbers[0]
+        : 0; // Initialize result to the first element of setOfNumbers, or 0 if setOfNumbers is empty
+    for (int i = 1; i < setOfNumbers.length; i++) {
+      if (setOfNumbers[i] != 0) {
+        print("calculating modulus ${setOfNumbers[i]}");
+        result %= setOfNumbers[
+            i]; // Calculate the modulus of result with each element in the setOfNumbers
+      } else {
+        print("Division by zero encountered. Skipping.");
+      }
+    }
+    setState(() {
+      calculatedResult = result.toString();
     });
   }
 
   void calculateResult() {
-    if (localNumbers.isNotEmpty) {
-      localNumbers.add(double.parse(localResult));
-      double result = localNumbers.reduce((value, element) => value + element);
-      setState(() {
-        localResult = result.toString();
-        localNumbers.clear();
-        currentNumber = result;
-      });
+    if (setOfNumbers.isNotEmpty) {
+      switch (currentOperator) {
+        // Add
+        case "+":
+          add();
+          break;
+        case "x":
+          multiply();
+          break;
+        case "/":
+          divide();
+          break;
+        case "-":
+          subtract();
+          break;
+        case "%":
+          calculateModulus();
+          break;
+        default:
+      }
+    } else {
+      print("Local numbers is empty!");
     }
   }
 
@@ -60,29 +127,32 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Column(
         children: [
           const SizedBox(
-            height: 80,
+            height: 50,
           ),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text(
-                localResult,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  calculatedResult,
+                  style: const TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              const Text(
-                "Result goes here",
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              // const Text(
+              //   "Result goes here",
+              //   style: const TextStyle(
+              //     fontSize: 20,
+              //     fontWeight: FontWeight.bold,
+              //   ),
+              // ),
             ],
           ),
           const SizedBox(
-            height: 20,
+            height: 10,
           ),
           GridView.count(
             crossAxisCount: 4,
@@ -90,71 +160,125 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               calculatorCell('AC', Colors.grey[700], acFunc),
               calculatorCell('*/-', Colors.grey[700], () {}),
-              calculatorCell('%', Colors.grey[700], () {}),
+              calculatorCell('%', Colors.grey[700], () {
+                updateResultView('%');
+                currentOperator = "%";
+                setOfNumbers.add(double.parse(currentNumber));
+                setState(() {
+                  currentNumber = '';
+                });
+              }),
               calculatorCell('÷', Colors.orange, () {
-                add();
+                updateResultView('÷');
+                currentOperator = "/";
+                setOfNumbers.add(double.parse(currentNumber));
+                setState(() {
+                  currentNumber = '';
+                });
               }),
               calculatorCell('7', Colors.grey[500], () {
-                updateLocalResult('7');
+                updateResultView('7');
+                currentNumber += '7';
               }),
               calculatorCell('8', Colors.grey[500], () {
-                updateLocalResult('8');
+                updateResultView('8');
+                currentNumber += '8';
               }),
               calculatorCell('9', Colors.grey[500], () {
-                updateLocalResult('9');
+                updateResultView('9');
+                currentNumber += '9';
               }),
               calculatorCell('x', Colors.orange, () {
-                multiply();
+                updateResultView('x');
+                currentOperator = "x";
+                setOfNumbers.add(double.parse(currentNumber));
+                setState(() {
+                  currentNumber = '';
+                });
               }),
               calculatorCell('4', Colors.grey[500], () {
-                updateLocalResult('4');
+                updateResultView('4');
+                currentNumber += '4';
               }),
               calculatorCell('5', Colors.grey[500], () {
-                updateLocalResult('5');
+                updateResultView('5');
+                currentNumber += '5';
               }),
               calculatorCell('6', Colors.grey[500], () {
-                updateLocalResult('6');
+                updateResultView('6');
+                currentNumber += '6';
               }),
               calculatorCell('-', Colors.orange, () {
-                updateLocalResult('-');
+                updateResultView('-');
+                currentOperator = "-";
+                setOfNumbers.add(double.parse(currentNumber));
+                setState(() {
+                  currentNumber = '';
+                });
               }),
               calculatorCell('1', Colors.grey[500], () {
-                updateLocalResult('1');
+                updateResultView('1');
+                currentNumber += '1';
               }),
               calculatorCell('2', Colors.grey[500], () {
-                updateLocalResult('2');
+                updateResultView('2');
+                currentNumber += '2';
               }),
               calculatorCell('3', Colors.grey[500], () {
-                updateLocalResult('3');
+                updateResultView('3');
+                currentNumber += '3';
               }),
               calculatorCell('+', Colors.orange, () {
-                add();
+                // add();
+                updateResultView("+");
+                currentOperator = "+";
+                setOfNumbers.add(double.parse(currentNumber));
+                setState(() {
+                  currentNumber = '0';
+                });
               }),
               calculatorCell('0', Colors.grey[500], () {
-                updateLocalResult('0');
+                updateResultView('0');
+                currentNumber += '0';
               }),
               calculatorCell('.', Colors.grey[500], () {
-                updateLocalResult('.');
+                updateResultView('.');
+                currentNumber += '.';
               }),
               calculatorCell('=', Colors.orange, () {
+                if (setOfNumbers.isEmpty) {
+                  setState(() {
+                    currentNumber = '';
+                  });
+                }
+                if (currentNumber.isNotEmpty) {
+                  setOfNumbers.add(double.parse(currentNumber));
+                }
                 calculateResult();
+                setOfNumbers.clear();
+                setState(() {
+                  currentNumber = calculatedResult.toString();
+                  // setOfNumbers.add(double.parse(calculatedResult));
+                });
               }),
             ],
           ),
         ],
       ),
-      bottomNavigationBar: const SizedBox(
-        height: 150,
+      bottomNavigationBar: Container(
+        height: 100,
+        color: Colors.red,
+        child: Center(child: Text("Ads go HERE")),
       ),
     );
   }
 
-  void updateLocalResult(String value) {
+  void updateResultView(String value) {
     setState(() {
-      if (localResult == '0' && value != '.') {
-        localResult = value;
+      if (calculatedResult == '0' && value != '.') {
+        calculatedResult = value;
       } else {
-        localResult += value;
+        calculatedResult += value;
       }
     });
   }
