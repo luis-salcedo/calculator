@@ -1,6 +1,7 @@
-import 'dart:ffi';
-
+import 'package:calculator/utils/ad_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'dart:math';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -10,10 +11,50 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  BannerAd? _bannerAd;
+  bool _isLoaded = false;
+
   String calculatedResult = '';
   List<double> setOfNumbers = [];
   String currentNumber = '';
   String currentOperator = '';
+
+  /// Loads a banner ad.
+  void loadAd() {
+    _bannerAd = BannerAd(
+      adUnitId: AdHelper.bannerAdUnitId,
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        // Called when an ad is successfully received.
+        onAdLoaded: (ad) {
+          debugPrint('$ad loaded.');
+          setState(() {
+            _isLoaded = true;
+          });
+        },
+        // Called when an ad request failed.
+        onAdFailedToLoad: (ad, err) {
+          debugPrint('BannerAd failed to load: $err');
+          // Dispose the ad here to free resources.
+          ad.dispose();
+        },
+        // Called when an ad opens an overlay that covers the screen.
+        onAdOpened: (Ad ad) {},
+        // Called when an ad removes an overlay that covers the screen.
+        onAdClosed: (Ad ad) {},
+        // Called when an impression occurs on the ad.
+        onAdImpression: (Ad ad) {},
+      ),
+    )..load();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadAd();
+  }
+
   void acFunc() {
     setState(() {
       calculatedResult = '';
@@ -30,6 +71,45 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       calculatedResult = result.toString();
     });
+  }
+
+  //IS Broken?
+  void positiveNegative() {
+    if (currentNumber.isNotEmpty || setOfNumbers.isNotEmpty) {
+      print("CURRENT NUMBER: $currentNumber");
+      double cNumber = double.parse(currentNumber);
+
+      // Find the position of the current number within calculatedResult
+      int startIndex = calculatedResult.lastIndexOf(currentNumber);
+
+      setState(() {
+        if (startIndex != -1) {
+          // Check if currentNumber is found
+          if (cNumber.isNegative) {
+            // Convert negative to positive
+            double convertedToPositive = cNumber.abs();
+            // Replace the currentNumber with its positive equivalent
+            calculatedResult = calculatedResult.replaceRange(
+                startIndex,
+                startIndex + currentNumber.length,
+                convertedToPositive.toStringAsFixed(0));
+            currentNumber = convertedToPositive.toString();
+          } else {
+            // Convert positive to negative
+            double convertedToNegative = -cNumber;
+            // Replace the currentNumber with its negative equivalent
+            calculatedResult = calculatedResult.replaceRange(
+                startIndex,
+                startIndex + currentNumber.length,
+                convertedToNegative.toStringAsFixed(0));
+            currentNumber = convertedToNegative.toString();
+          }
+        } else {
+          // Handle case where currentNumber is not found
+          print("Current number not found in calculatedResult.");
+        }
+      });
+    }
   }
 
   void multiply() {
@@ -159,22 +239,30 @@ class _HomeScreenState extends State<HomeScreen> {
             shrinkWrap: true,
             children: [
               calculatorCell('AC', Colors.grey[700], acFunc),
-              calculatorCell('*/-', Colors.grey[700], () {}),
+              calculatorCell('*/-', Colors.grey[700], () {
+                if (currentNumber.isNotEmpty || setOfNumbers.isNotEmpty) {
+                  positiveNegative();
+                }
+              }),
               calculatorCell('%', Colors.grey[700], () {
-                updateResultView('%');
-                currentOperator = "%";
-                setOfNumbers.add(double.parse(currentNumber));
-                setState(() {
-                  currentNumber = '';
-                });
+                if (currentNumber.isNotEmpty || setOfNumbers.isNotEmpty) {
+                  updateResultView('%');
+                  currentOperator = "%";
+                  setOfNumbers.add(double.parse(currentNumber));
+                  setState(() {
+                    currentNumber = '';
+                  });
+                }
               }),
               calculatorCell('÷', Colors.orange, () {
-                updateResultView('÷');
-                currentOperator = "/";
-                setOfNumbers.add(double.parse(currentNumber));
-                setState(() {
-                  currentNumber = '';
-                });
+                if (currentNumber.isNotEmpty || setOfNumbers.isNotEmpty) {
+                  updateResultView('÷');
+                  currentOperator = "/";
+                  setOfNumbers.add(double.parse(currentNumber));
+                  setState(() {
+                    currentNumber = '';
+                  });
+                }
               }),
               calculatorCell('7', Colors.grey[500], () {
                 updateResultView('7');
@@ -189,12 +277,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 currentNumber += '9';
               }),
               calculatorCell('x', Colors.orange, () {
-                updateResultView('x');
-                currentOperator = "x";
-                setOfNumbers.add(double.parse(currentNumber));
-                setState(() {
-                  currentNumber = '';
-                });
+                if (currentNumber.isNotEmpty || setOfNumbers.isNotEmpty) {
+                  updateResultView('x');
+                  currentOperator = "x";
+                  setOfNumbers.add(double.parse(currentNumber));
+                  setState(() {
+                    currentNumber = '';
+                  });
+                }
               }),
               calculatorCell('4', Colors.grey[500], () {
                 updateResultView('4');
@@ -209,12 +299,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 currentNumber += '6';
               }),
               calculatorCell('-', Colors.orange, () {
-                updateResultView('-');
-                currentOperator = "-";
-                setOfNumbers.add(double.parse(currentNumber));
-                setState(() {
-                  currentNumber = '';
-                });
+                if (currentNumber.isNotEmpty || setOfNumbers.isNotEmpty) {
+                  updateResultView('-');
+                  currentOperator = "-";
+                  setOfNumbers.add(double.parse(currentNumber));
+                  setState(() {
+                    currentNumber = '';
+                  });
+                }
               }),
               calculatorCell('1', Colors.grey[500], () {
                 updateResultView('1');
@@ -230,12 +322,14 @@ class _HomeScreenState extends State<HomeScreen> {
               }),
               calculatorCell('+', Colors.orange, () {
                 // add();
-                updateResultView("+");
-                currentOperator = "+";
-                setOfNumbers.add(double.parse(currentNumber));
-                setState(() {
-                  currentNumber = '0';
-                });
+                if (currentNumber.isNotEmpty || setOfNumbers.isNotEmpty) {
+                  updateResultView("+");
+                  currentOperator = "+";
+                  setOfNumbers.add(double.parse(currentNumber));
+                  setState(() {
+                    currentNumber = '';
+                  });
+                }
               }),
               calculatorCell('0', Colors.grey[500], () {
                 updateResultView('0');
@@ -265,11 +359,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        height: 100,
-        color: Colors.red,
-        child: Center(child: Text("Ads go HERE")),
-      ),
+      bottomNavigationBar: _bannerAd != null
+          ? SizedBox(
+              width: _bannerAd!.size.width.toDouble(),
+              height: _bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            )
+          : Container(),
     );
   }
 
